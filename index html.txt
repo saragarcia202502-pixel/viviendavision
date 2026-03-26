@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>ViviendaVisión</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  background: linear-gradient(135deg, #1e3c72, #2a5298);
+}
+
+/* HEADER */
+.header {
+  color: white;
+  padding: 20px 40px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.subheader {
+  color: #dfe9f3;
+  font-size: 14px;
+}
+
+/* CONTENEDOR */
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 40px;
+}
+
+/* TARJETAS */
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+/* INPUTS */
+input[type=range] {
+  width: 100%;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
+/* BOTÓN */
+button {
+  width: 100%;
+  padding: 12px;
+  background: #2a5298;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1e3c72;
+}
+
+/* RESULTADO */
+.result {
+  background: #eafaf1;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.aprobado {
+  color: green;
+  font-weight: bold;
+}
+
+.noaprobado {
+  color: red;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+🏠 ViviendaVisión  
+<div class="subheader">Tu hogar, tu futuro</div>
+</div>
+
+<div class="container">
+
+<!-- PANEL IZQUIERDO -->
+<div class="card">
+<h3>Datos del cliente</h3>
+
+<label>Ingreso mensual: <span id="ingresoVal">3000000</span></label>
+<input type="range" min="1000000" max="10000000" step="100000" value="3000000" id="ingreso">
+
+<label>Valor vivienda</label>
+<input type="number" id="vivienda" value="300000000">
+
+<label>Cuota inicial (%)</label>
+<input type="number" id="cuota" value="30">
+
+<label>Tasa EA (%)</label>
+<input type="number" id="tasa" value="12">
+
+<label>Plazo (meses)</label>
+<input type="number" id="plazo" value="240">
+
+<label>Salario mínimo</label>
+<input type="number" id="smmlv" value="2000000">
+
+<button onclick="calcular()">Analizar</button>
+</div>
+
+<!-- RESULTADOS -->
+<div class="card">
+<h3>Resumen ejecutivo</h3>
+
+<div class="result" id="resultado"></div>
+
+<canvas id="grafico"></canvas>
+
+</div>
+
+</div>
+
+<script>
+let chart;
+
+document.getElementById("ingreso").oninput = function() {
+  document.getElementById("ingresoVal").innerText = this.value;
+}
+
+function calcular() {
+
+let ingreso = parseFloat(document.getElementById("ingreso").value);
+let vivienda = parseFloat(document.getElementById("vivienda").value);
+let cuota = parseFloat(document.getElementById("cuota").value)/100;
+let tasa = parseFloat(document.getElementById("tasa").value)/100/12;
+let plazo = parseFloat(document.getElementById("plazo").value);
+let smmlv = parseFloat(document.getElementById("smmlv").value);
+
+let ingresoSMMLV = ingreso / smmlv;
+
+/* SUBSIDIO */
+let subsidio = 0;
+
+if(ingresoSMMLV <= 2){
+  subsidio = 30000000;
+} else if(ingresoSMMLV <= 4){
+  subsidio = 20000000;
+}
+
+/* CALCULOS */
+let cuotaInicial = vivienda * cuota;
+let credito = vivienda - cuotaInicial - subsidio;
+
+/* CUOTA MENSUAL */
+let cuotaMensual = credito * (tasa*Math.pow(1+tasa,plazo)) / (Math.pow(1+tasa,plazo)-1);
+
+/* EVALUACION */
+let capacidad = ingreso * 0.3;
+
+let estado = "";
+let clase = "";
+
+if(cuotaMensual <= capacidad){
+  estado = "APROBACIÓN PROBABLE";
+  clase = "aprobado";
+} else {
+  estado = "NO VIABLE";
+  clase = "noaprobado";
+}
+
+/* RESULTADO */
+document.getElementById("resultado").innerHTML = `
+<b>Ingreso en SMMLV:</b> ${ingresoSMMLV.toFixed(2)}<br>
+<b>Subsidio:</b> $${subsidio.toLocaleString()}<br>
+<b>Cuota inicial:</b> $${cuotaInicial.toLocaleString()}<br>
+<b>Crédito:</b> $${credito.toLocaleString()}<br>
+<b>Cuota mensual:</b> $${cuotaMensual.toFixed(0).toLocaleString()}<br>
+<b>Capacidad de pago:</b> $${capacidad.toLocaleString()}<br>
+<br>
+<span class="${clase}">${estado}</span>
+<br><br>
+<small>Simulación basada en criterios financieros estándar en Colombia. Sujeta a validación por entidades financieras.</small>
+`;
+
+/* GRAFICO */
+if(chart) chart.destroy();
+
+chart = new Chart(document.getElementById("grafico"), {
+  type: 'line',
+  data: {
+    labels: ["Inicio","Mitad","Final"],
+    datasets: [{
+      label: "Deuda",
+      data: [credito, credito/2, 0],
+      borderWidth: 2,
+      fill: false
+    }]
+  }
+});
+
+}
+</script>
+
+</body>
+</html>
